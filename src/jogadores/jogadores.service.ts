@@ -1,23 +1,44 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {Injectable, Logger, NotFoundException} from '@nestjs/common';
 import { CriarJogadorDto } from './dtos/criar-jogador.dto';
-import {jogador} from './interfaces/jogador.interface';
+import {Jogador} from './interfaces/jogador.interface';
 import {v4 as uuidv4} from 'uuid';
+
 @Injectable()
 export class JogadoresService {
 
-    private jogadores: jogador[] = [];
+    private jogadores: Jogador[] = [];
 
-    private readonly logger = new Logger(JogadoresService.name);
+    async criarAtualizar(jogadorDto: CriarJogadorDto): Promise<Jogador> {
+        console.log(jogadorDto);
+        const {email} = jogadorDto;
+        const jogardorExistente = this.jogadores.find(jogador => jogador.email === email);
+        if(jogardorExistente){
+            return await this.atualizar(jogardorExistente, jogadorDto);
+        }
 
-    async criarAtualizar(jogadorDto: CriarJogadorDto): Promise<jogador> {
-        this.logger.log(`criaJogadorDto: ${jogadorDto}`);
-        const jogador = this.criar(jogadorDto);
-        return jogador;
+        return await  this.criar(jogadorDto);
     }
 
-    private criar(criaJogadorDto: CriarJogadorDto) : jogador {
+    async consultarJogadores() : Promise<Jogador[]>{
+        return this.jogadores;
+    }
+
+    async consultarPeloEmail(email: string) : Promise<Jogador> {
+        const jogadorEncontrado =  this.jogadores.find(jogador => jogador.email === email);
+        if(!jogadorEncontrado) {
+            throw  new NotFoundException(`Jogador com o email: ${email} nao foi encontrado!"`);
+        }
+        return jogadorEncontrado;
+    }
+
+    async deletarJogador(email: string) : Promise<void> {
+        const jogadorDelatado = this.jogadores.find(jogador => jogador.email === email)
+        this.jogadores = this.jogadores.filter(jogador => jogador.email !== jogadorDelatado.email)
+    }
+
+     criar(criaJogadorDto: CriarJogadorDto) : Jogador {
         const {nome,numberPhone,email} = criaJogadorDto;
-        const jogador: jogador = {
+        const jogador: Jogador = {
             _id: uuidv4(),
             nome,
             numberPhone,
@@ -28,6 +49,10 @@ export class JogadoresService {
         }
         this.jogadores.push(jogador);
         return jogador;
+    }
+    atualizar(jogadorExistente : Jogador, jogadorDto: CriarJogadorDto) : Jogador {
+        jogadorExistente.nome = jogadorDto.nome;
+        return jogadorExistente
     }
 
 }
